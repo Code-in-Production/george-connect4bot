@@ -38,9 +38,9 @@ class Round:
         CHIP_EMOJIS[i] = emoji
 
     def __post_init__(self):
-        self.game_id = self.next_game_id
-        self.rounds_from_id[self.game_id] = self
-        self.next_game_id += 1
+        self.game_id = Round.next_game_id
+        Round.rounds_from_id[self.game_id] = self
+        Round.next_game_id += 1
         self.game_grid = [[-1]*self.width for _ in range(self.height)]
 
     @property
