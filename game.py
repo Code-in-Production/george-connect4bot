@@ -44,6 +44,10 @@ class Round:
         self.game_grid = [[-1]*self.width for _ in range(self.height)]
 
     @property
+    def type(self):
+        return []
+
+    @property
     def message(self):
         return self._message
 
@@ -104,10 +108,14 @@ class Round:
         await self.refresh_message()
 
     async def refresh_message(self):
+        states = [*self.type]
         if self.game_ended:
-            await self.message.edit(content=f"Game {self.game_id} (Ended)", embed=self.create_embed())
+            states.append("Ended")
+        if states:
+            suffix = f" ({', '.join(states)})"
         else:
-            await self.message.edit(content=f"Game {self.game_id}", embed=self.create_embed())
+            suffix = ""
+        await self.message.edit(content=f"Game {self.game_id}{suffix}", embed=self.create_embed())
 
     async def place_and_check(self, column_index):
         # Try finding empty space in column
