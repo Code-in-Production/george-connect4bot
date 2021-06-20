@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import typing
+from copy import deepcopy
 from dataclasses import dataclass, field
 
 import discord
@@ -67,10 +68,12 @@ class Round:
     def column_emojis(self):
         return self.COLUMN_EMOJIS[:self.width]
 
-    def create_embed(self):
+    def create_embed(self, *, game_grid=None):
+        if game_grid is None:
+            game_grid = self.game_grid
         embed = discord.Embed()
         embed.add_field(name=f"Turn {self.turn_number+1}", value=(
-            "\n".join("".join(self.CHIP_EMOJIS[state] for state in row) for row in self.game_grid)
+            "\n".join("".join(self.CHIP_EMOJIS[state] for state in row) for row in game_grid)
             + "\n" + "".join(self.column_emojis)
             + "\n" + (
                 f"{self.current_user.mention}'s move! {self.CHIP_EMOJIS[self.current_user_index]}"
@@ -174,6 +177,23 @@ class LightningRound(Round):
     async def place_and_check(self, column_index):
         await super().place_and_check(column_index)
         asyncio.create_task(self.end_if_no_change())
+
+@dataclass
+class DelayedRound(Round):
+    delay: int = 2
+
+    @property
+    def info(self):
+        return ["Delayed", f"{self.delay} Move Delay"]
+
+    def create_embed(self):
+        if self.game_ended:
+            game_grid = None
+        else:
+            game_grid = deepcopy(self.game_grid)
+            for user_index, column_index, row_index in self.game_history[-self.delay:]:
+                game_grid[row_index][column_index] = -1
+        return super().create_embed(game_grid=game_grid)
 
 @dataclass
 class Game(commands.Cog):
