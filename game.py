@@ -44,7 +44,7 @@ class Round:
         self.game_grid = [[-1]*self.width for _ in range(self.height)]
 
     @property
-    def type(self):
+    def info(self):
         return []
 
     @property
@@ -108,7 +108,7 @@ class Round:
         await self.refresh_message()
 
     async def refresh_message(self):
-        states = [*self.type]
+        states = [*self.info]
         if self.game_ended:
             states.append("Ended")
         if states:
@@ -159,7 +159,7 @@ class LightningRound(Round):
     timeout: int = 10
 
     @property
-    def type(self):
+    def info(self):
         return ["Lightning", f"{self.timeout} Second Timeout"]
 
     async def end_if_no_change(self):
