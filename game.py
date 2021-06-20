@@ -49,6 +49,8 @@ class Game(commands.Cog):
                 await message.edit(content="", embed=embed)
                 # Wait for reaction from current user
                 def check(reaction, user):
+                    if reaction.message.id != message.id:
+                        return False
                     if user.id != current_user.id:
                         return False
                     if reaction.emoji not in column_emojis:
