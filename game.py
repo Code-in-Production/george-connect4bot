@@ -155,6 +155,27 @@ class Round:
         self.message = None
 
 @dataclass
+class LightningRound(Round):
+    timeout: int = 10
+
+    @property
+    def type(self):
+        return ["Lightning", f"{self.timeout} Second Timeout"]
+
+    async def end_if_no_change(self):
+        aaa = self.turn_number, self.current_user_index
+        await asyncio.sleep(self.timeout)
+        if (self.turn_number, self.current_user_index) != aaa:
+            return
+        if self.game_ended:
+            return
+        await self.end()
+
+    async def place_and_check(self, column_index):
+        await super().place_and_check(column_index)
+        asyncio.create_task(self.end_if_no_change())
+
+@dataclass
 class Game(commands.Cog):
     bot: commands.Bot
 
@@ -163,6 +184,13 @@ class Game(commands.Cog):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
         round = Round(users=users)
+        await round.new_message(await ctx.send("..."))
+
+    @commands.command(ignore_extra=False, require_var_positional=True)
+    async def startlightning(self, ctx, *users: discord.Member):
+        if len(users) < 2:
+            raise commands.CommandInvokeError("at least 2 players required")
+        round = LightningRound(users=users)
         await round.new_message(await ctx.send("..."))
 
     @commands.command(ignore_extra=False)
