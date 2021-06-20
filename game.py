@@ -101,18 +101,17 @@ class Game(commands.Cog):
         except asyncio.TimeoutError:
             await message.reply("Game timed out")
         else:
-            # Someone won :D
-            await message.reply("Someone won xD")
-            # (copied from "Update game message")
+            # show final state (copied from "Update game message")
             current_user = users[current_user_index]
             embed = discord.Embed()
             embed.add_field(name=f"Turn {turn_number+1}", value=(
                 "\n".join("".join(chip_emojis[state] for state in row) for row in game_grid)
                 + "\n" + "".join(column_emojis)
-                + "\n" + f"{current_user.mention}'s move! {chip_emojis[current_user_index]}"
                 )
             )
             await message.edit(content="", embed=embed)
+            # Someone won :D
+            await message.reply(f"{current_user.mention} won :D")
 
 def setup(bot):
     bot.add_cog(Game(bot))
