@@ -18,19 +18,19 @@ async def on_ready():
     print("Bot now running")
     asyncio.create_task(input_handler())
 
-@bot.command(ignore_extra=False)
+@bot.command(ignore_extra=False, hidden=True)
 @commands.is_owner()
 async def load(ctx, name):
     bot.load_extension(name)
     await ctx.send("Extension loaded")
 
-@bot.command(ignore_extra=False)
+@bot.command(ignore_extra=False, hidden=True)
 @commands.is_owner()
 async def unload(ctx, name):
     bot.unload_extension(name)
     await ctx.send("Extension loaded")
 
-@bot.command(ignore_extra=False)
+@bot.command(ignore_extra=False, hidden=True)
 @commands.is_owner()
 async def reload(ctx, name):
     bot.reload_extension(name)
