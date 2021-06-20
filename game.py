@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import typing
+import ast
 from copy import deepcopy
 from dataclasses import dataclass, field
 
@@ -198,19 +199,35 @@ class DelayedRound(Round):
 @dataclass
 class Game(commands.Cog):
     bot: commands.Bot
+    kwargs: dict[str, typing.Any] = field(default_factory=dict)
+
+    @commands.command()
+    async def options(self, ctx, *, kwargs):
+        if not kwargs:
+            self.kwargs = {}
+        else:
+            self.kwargs = ast.literal_eval(kwargs)
+        await ctx.send("Updated options")
 
     @commands.command(ignore_extra=False, require_var_positional=True)
     async def start(self, ctx, *users: discord.Member):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
-        round = Round(users=users)
+        round = Round(users=users, **self.kwargs)
         await round.new_message(await ctx.send("..."))
 
     @commands.command(ignore_extra=False, require_var_positional=True)
     async def startlightning(self, ctx, *users: discord.Member):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
-        round = LightningRound(users=users)
+        round = LightningRound(users=users, **self.kwargs)
+        await round.new_message(await ctx.send("..."))
+
+    @commands.command(ignore_extra=False, require_var_positional=True)
+    async def startdelayed(self, ctx, *users: discord.Member):
+        if len(users) < 2:
+            raise commands.CommandInvokeError("at least 2 players required")
+        round = DelayedRound(users=users, **{"delay": len(users), **self.kwargs})
         await round.new_message(await ctx.send("..."))
 
     @commands.command(ignore_extra=False)
