@@ -146,6 +146,8 @@ class Round:
         return True
 
     async def end(self):
+        if self.game_ended:
+            return
         self.game_ended = True
         self.winner_index = -1
         await self.refresh_message()
