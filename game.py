@@ -204,9 +204,11 @@ class Game(commands.Cog):
     @commands.command()
     async def options(self, ctx, *, kwargs):
         if not kwargs:
+            await ctx.send(f"Options: {self.kwargs}")
+            return
+        self.kwargs = ast.literal_eval(kwargs)
+        if self.kwargs is None:
             self.kwargs = {}
-        else:
-            self.kwargs = ast.literal_eval(kwargs)
         await ctx.send("Updated options")
 
     @commands.command(ignore_extra=False, require_var_positional=True)
