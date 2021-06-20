@@ -265,12 +265,17 @@ class Game(commands.Cog):
             raise commands.CommandInvokeError(f"no game with id {id} found")
         round = Round.rounds_from_id[id]
         if not round.game_history:
-            await ctx.send("Game History:\n*Empty currently*")
+            await ctx.send("Game History:\n*Empty :/*")
             return
-        await ctx.send(f"Game History:\n" + "\n".join(
-            f"{round.users[user_index].display_name} {round.CHIP_EMOJIS[user_index]} at column {column_index+1} row {row_index+1}"
-            for user_index, column_index, row_index in round.game_history
-        ))
+        game_history = round.game_history.copy()
+        for i, (user_index, column_index, row_index) in enumerate(game_history):
+            game_history[i] = user_index, column_index+1, round.height-row_index
+        if isinstance(round, DelayedRound) and not round.game_ended:
+            for i in range(len(game_history))[-round.delay:]:
+                game_history[i] = game_history[i][0], "?", "?"
+        for i, (user_index, column_index, row_index) in enumerate(game_history):
+            game_history[i] = f"{round.users[user_index].display_name} {round.CHIP_EMOJIS[user_index]} at column {column_index} row {row_index}"
+        await ctx.send(f"Game History:\n" + "\n".join(game_history))
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
