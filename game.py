@@ -17,6 +17,7 @@ class Round:
     current_user_index: int = 0
     turn_number: int = 0
     game_ended: bool = False
+    winner_index: int = -1
     game_grid: list[list[int]] = field(init=False)
     game_history: list[tuple[int, int, int]] = field(default_factory=list, init=False)
     _message: typing.Optional[discord.Message] = field(default=None, init=False)
@@ -70,7 +71,11 @@ class Round:
             + "\n" + (
                 f"{self.current_user.mention}'s move! {self.CHIP_EMOJIS[self.current_user_index]}"
                 if not self.game_ended else
-                f"{self.current_user.mention} won! {self.CHIP_EMOJIS[self.current_user_index]}"
+                (
+                    f"{self.users[self.winner_index].mention} won! {self.CHIP_EMOJIS[self.winner_index]}"
+                    if self.winner_index != -1 else
+                    ""
+                )
             )
         ))
         return embed
@@ -91,13 +96,18 @@ class Round:
         return False
 
     async def new_message(self, message):
-        for emoji in self.column_emojis:
-            await message.add_reaction(emoji)
+        if not self.game_ended:
+            for emoji in self.column_emojis:
+                await message.add_reaction(emoji)
+            await message.add_reaction("❌")
         self.message = message
         await self.refresh_message()
 
     async def refresh_message(self):
-        await self.message.edit(content=f"Game {self.game_id}", embed=self.create_embed())
+        if self.game_ended:
+            await self.message.edit(content=f"Game {self.game_id} (Ended)", embed=self.create_embed())
+        else:
+            await self.message.edit(content=f"Game {self.game_id}", embed=self.create_embed())
 
     async def place_and_check(self, column_index):
         # Try finding empty space in column
@@ -121,10 +131,18 @@ class Round:
             return False
         # Someone won :D
         self.game_ended = True
+        self.winner_index = self.current_user_index
         await self.refresh_message()
         await self.message.reply(f"{self.current_user.mention} won :D")
         self.message = None
         return True
+
+    async def end(self):
+        self.game_ended = True
+        self.winner_index = -1
+        await self.refresh_message()
+        await self.message.reply(f"Game ended")
+        self.message = None
 
 @dataclass
 class Game(commands.Cog):
@@ -145,12 +163,23 @@ class Game(commands.Cog):
         await round.new_message(await ctx.send("..."))
 
     @commands.command(ignore_extra=False)
+    async def end(self, ctx, id: int):
+        if id not in Round.rounds_from_id.keys():
+            raise commands.CommandInvokeError(f"no game with id {id} found")
+        round = Round.rounds_from_id[id]
+        if round.game_ended:
+            raise commands.CommandInvokeError(f"game with id {id} already ended")
+        await round.end()
+
+    @commands.command(ignore_extra=False)
     async def place(self, ctx, id: int, column: int):
         if id not in Round.rounds_from_id.keys():
             raise commands.CommandInvokeError(f"no game with id {id} found")
         round = Round.rounds_from_id[id]
         if round.game_ended:
             raise commands.CommandInvokeError(f"game with id {id} already ended")
+        if ctx.author.id != round.current_user.id:
+            raise commands.CommandInvokeError(f"not your turn lol")
         if not 1 <= column <= round.width:
             raise commands.CommandInvokeError(f"column must be between 1 and {round.width}")
         await round.place_and_check(column-1)
@@ -174,7 +203,12 @@ class Game(commands.Cog):
         if reaction.message not in Round.rounds_from_message.keys():
             return
         round = Round.rounds_from_message[reaction.message]
+        if round.game_ended:
+            return
         if user.id != round.current_user.id:
+            return
+        if reaction.emoji == "❌":
+            await round.end()
             return
         if reaction.emoji not in round.column_emojis:
             return
