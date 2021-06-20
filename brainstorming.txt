@@ -1,0 +1,14 @@
+lightning connect 4 (each move only takes like 10 seconds)
+pressing reactions to choose which column to drop your chip in
+ - maybe i could use button
+single message that's edited on each move
+ - it tells you whose turn it is
+ - turn number
+delayed connect 4 (your chip is only shown after 1 move)
+custom game board size (default is 7x6)
+custom number of players
+ ? number of ai
+round info
+ - number of players / ai
+ - order of players
+history command
