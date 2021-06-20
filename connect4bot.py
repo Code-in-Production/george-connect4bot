@@ -26,13 +26,13 @@ async def load(ctx, name):
 
 @bot.command(ignore_extra=False)
 @commands.is_owner()
-async def unload(ctx):
+async def unload(ctx, name):
     bot.unload_extension(name)
     await ctx.send("Extension loaded")
 
 @bot.command(ignore_extra=False)
 @commands.is_owner()
-async def reload(ctx):
+async def reload(ctx, name):
     bot.reload_extension(name)
     await ctx.send("Extension loaded")
 
