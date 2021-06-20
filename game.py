@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import typing
-import ast
 from copy import deepcopy
 from dataclasses import dataclass, field
 
@@ -198,42 +197,109 @@ class DelayedRound(Round):
 
 @dataclass
 class Game(commands.Cog):
+    """Play Connect 4 in Discord :D"""
+
     bot: commands.Bot
     kwargs: dict[str, typing.Any] = field(default_factory=dict)
 
-    @commands.command()
-    async def options(self, ctx, *, kwargs):
-        if not kwargs:
-            await ctx.send(f"Options: {self.kwargs}")
+    def __hash__(self):
+        return hash(id(self))
+
+    @commands.group()
+    async def options(self, ctx, *args):
+        """Set or view options for the next game.
+
+        Possible options:
+            height - height of the board (default=6)
+            width - width of the board (default=7)
+            length - length of consecutive chips needed to win (default=4)
+            timeout - number of seconds for each player's turn (default=10)
+            delay - number of moves to hide each chip for (default=# of players)
+
+        Usage:
+            ]options                        - this shows the current options
+            ]options height=69              - this sets height to 69
+            ]options width=420 length=69    - this sets width to 420 and length to 69
+            ]options timeout=               - this resets timeout to the default value
+        """
+        if not args:
+            if not self.kwargs:
+                await ctx.send(f"Options: *Empty :/*")
+            else:
+                await ctx.send(f"Options: {', '.join(f'{name}={value}' for name, value in self.kwargs.items())}")
             return
-        self.kwargs = ast.literal_eval(kwargs)
-        if self.kwargs is None:
-            self.kwargs = {}
+        for arg in args:
+            if "=" not in arg:
+                raise commands.CommandInvokeError(f"no = in {arg}")
+            name, _, value = arg.partition("=")
+            if name not in "width height length timeout delay".split():
+                raise commands.CommandInvokeError(f"unknown option: {name}")
+            if not value:
+                continue
+            try:
+                value = int(value)
+            except ValueError:
+                raise commands.CommandInvokeError(f"option {name}'s value not an int: {value}")
+            if value <= 0:
+                raise commands.CommandInvokeError(f"option {name}'s value must be positive: {value}")
+        for arg in args:
+            name, _, value = arg.partition("=")
+            if not value:
+                del self.kwargs[name]
+            else:
+                self.kwargs[name] = int(value)
         await ctx.send("Updated options")
 
     @commands.command(aliases=["startnormal", "s"], ignore_extra=False, require_var_positional=True)
     async def start(self, ctx, *users: discord.Member):
+        """Start a normal game of Connect 4 with the specified players."""
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
-        round = Round(users=users, **self.kwargs)
+        kwargs = self.kwargs.copy()
+        kwargs.pop("delay", None)
+        kwargs.pop("timeout", None)
+        round = Round(users=users, **kwargs)
         await round.new_message(await ctx.send("..."))
 
     @commands.command(aliases=["l"], ignore_extra=False, require_var_positional=True)
     async def startlightning(self, ctx, *users: discord.Member):
+        """Start a lightning game of Connect 4 with the specified players.
+
+        The countdown starts after the first player has made a move.
+
+        Use ]options timeout=<seconds> to change the number of seconds each
+        player can have for a turn.
+
+        """
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
-        round = LightningRound(users=users, **self.kwargs)
+        kwargs = self.kwargs.copy()
+        kwargs.pop("delay", None)
+        round = LightningRound(users=users, **kwargs)
         await round.new_message(await ctx.send("..."))
 
     @commands.command(aliases=["d"], ignore_extra=False, require_var_positional=True)
     async def startdelayed(self, ctx, *users: discord.Member):
+        """Start a delayed game of Connect 4 with the specified players.
+
+        Use ]options delay=<moves> to change the number of moves that will be
+        hidden.
+
+        """
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
-        round = DelayedRound(users=users, **{"delay": len(users), **self.kwargs})
+        kwargs = self.kwargs.copy()
+        kwargs.pop("timeout", None)
+        round = DelayedRound(users=users, **{"delay": len(users), **kwargs})
         await round.new_message(await ctx.send("..."))
 
     @commands.command(ignore_extra=False)
     async def show(self, ctx, id: int):
+        """Creates a new message for the game with the specified id.
+
+        Any reactions on previous messages will no longer work.
+
+        """
         if id not in Round.rounds_from_id.keys():
             raise commands.CommandInvokeError(f"no game with id {id} found")
         round = Round.rounds_from_id[id]
@@ -241,6 +307,7 @@ class Game(commands.Cog):
 
     @commands.command(ignore_extra=False)
     async def end(self, ctx, id: int):
+        """Ends the game with the specified id."""
         if id not in Round.rounds_from_id.keys():
             raise commands.CommandInvokeError(f"no game with id {id} found")
         round = Round.rounds_from_id[id]
@@ -250,6 +317,11 @@ class Game(commands.Cog):
 
     @commands.command(ignore_extra=False)
     async def place(self, ctx, id: int, column: int):
+        """Places a chip on the column in the game with the specified id.
+
+        This is an alternative to using the emojis.
+
+        """
         if id not in Round.rounds_from_id.keys():
             raise commands.CommandInvokeError(f"no game with id {id} found")
         round = Round.rounds_from_id[id]
@@ -263,6 +335,11 @@ class Game(commands.Cog):
 
     @commands.command(ignore_extra=False)
     async def history(self, ctx, id: int):
+        """Views the history of the game with the specified id.
+
+        In delayed games, hidden moves will be shown as question marks.
+
+        """
         if id not in Round.rounds_from_id.keys():
             raise commands.CommandInvokeError(f"no game with id {id} found")
         round = Round.rounds_from_id[id]
