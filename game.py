@@ -19,11 +19,12 @@ class Game(commands.Cog):
         self.bot = bot
 
     @commands.command(ignore_extra=False, require_var_positional=True)
-    async def start(self, ctx, *users: discord.User):
+    async def start(self, ctx, *users: discord.Member):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
         # start the game with the message
         width, height = 7, 6
+        length = 4
         current_user_index = 0
         turn_number = 0
         message = await ctx.send("Preparing...")  # The message we gon be editing
@@ -39,7 +40,12 @@ class Game(commands.Cog):
                 # Update game message
                 current_user = users[current_user_index]
                 embed = discord.Embed()
-                embed.add_field(name=f"Turn {turn_number+1}", value="\n".join("".join(chip_emojis[state] for state in row) for row in game_grid) + "\n" + "".join(column_emojis) + "\n" + f"{current_user.mention}'s move! {chip_emojis[current_user_index]}")
+                embed.add_field(name=f"Turn {turn_number+1}", value=(
+                    "\n".join("".join(chip_emojis[state] for state in row) for row in game_grid)
+                    + "\n" + "".join(column_emojis)
+                    + "\n" + f"{current_user.mention}'s move! {chip_emojis[current_user_index]}"
+                    )
+                )
                 await message.edit(content="", embed=embed)
                 # Wait for reaction from current user
                 def check(reaction, user):
@@ -64,14 +70,47 @@ class Game(commands.Cog):
                 # Place chip
                 game_history.append((current_user_index, column_index))
                 game_grid[row_index][column_index] = current_user_index
-                # Go to next user
-                current_user_index += 1
-                if current_user_index == len(users):
-                    current_user_index = 0
-                    turn_number += 1
+                # Check for a win
+                max_len_in_a_row = {(0, 1): 0, (1, 0): 0, (1, 1): 0, (1, -1): 0}  # All directions
+                for offset in range(-length + 1, length):
+                    for y, x in max_len_in_a_row:
+                        try:
+                            print(row_index + y*offset, column_index + x*offset)
+                            if game_grid[row_index + y*offset][column_index + x*offset] == current_user_index:
+                                max_len_in_a_row[y, x] += 1
+                                if max_len_in_a_row[y, x] == length:
+                                    break
+                                continue
+                        except IndexError:
+                            pass
+                        max_len_in_a_row[y, x] = 0
+                    else:
+                        continue
+                    break
+                else:
+                    # No win, go to next user
+                    current_user_index += 1
+                    if current_user_index == len(users):
+                        current_user_index = 0
+                        turn_number += 1
+                    continue
+                break
         # Timed out waiting for a reaction
         except asyncio.TimeoutError:
             await message.reply("Game timed out")
+        else:
+            # Someone won :D
+            await message.reply("Someone won xD")
+            # (copied from "Update game message")
+            current_user = users[current_user_index]
+            embed = discord.Embed()
+            embed.add_field(name=f"Turn {turn_number+1}", value=(
+                "\n".join("".join(chip_emojis[state] for state in row) for row in game_grid)
+                + "\n" + "".join(column_emojis)
+                + "\n" + f"{current_user.mention}'s move! {chip_emojis[current_user_index]}"
+                )
+            )
+            await message.edit(content="", embed=embed)
 
 def setup(bot):
     bot.add_cog(Game(bot))
