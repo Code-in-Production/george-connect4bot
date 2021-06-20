@@ -211,21 +211,21 @@ class Game(commands.Cog):
             self.kwargs = {}
         await ctx.send("Updated options")
 
-    @commands.command(ignore_extra=False, require_var_positional=True)
+    @commands.command(aliases=["startnormal", "s"], ignore_extra=False, require_var_positional=True)
     async def start(self, ctx, *users: discord.Member):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
         round = Round(users=users, **self.kwargs)
         await round.new_message(await ctx.send("..."))
 
-    @commands.command(ignore_extra=False, require_var_positional=True)
+    @commands.command(aliases=["l"], ignore_extra=False, require_var_positional=True)
     async def startlightning(self, ctx, *users: discord.Member):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
         round = LightningRound(users=users, **self.kwargs)
         await round.new_message(await ctx.send("..."))
 
-    @commands.command(ignore_extra=False, require_var_positional=True)
+    @commands.command(aliases=["d"], ignore_extra=False, require_var_positional=True)
     async def startdelayed(self, ctx, *users: discord.Member):
         if len(users) < 2:
             raise commands.CommandInvokeError("at least 2 players required")
