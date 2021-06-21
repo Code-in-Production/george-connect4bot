@@ -5,18 +5,9 @@ from discord.ext import commands
 
 bot = commands.Bot(command_prefix="]")
 
-async def input_handler():
-    while True:
-        try:
-            await asyncio.to_thread(input)
-        except EOFError:
-            break
-    await bot.close()
-
 @bot.event
 async def on_ready():
     print("Bot now running")
-    asyncio.create_task(input_handler())
 
 @bot.command(ignore_extra=False, hidden=True)
 @commands.is_owner()
@@ -35,6 +26,12 @@ async def unload(ctx, name):
 async def reload(ctx, name):
     bot.reload_extension(name)
     await ctx.send("Extension loaded")
+
+@bot.command(ignore_extra=False, hidden=True)
+@commands.is_owner()
+async def stop(ctx):
+    await ctx.send("Stopping bot")
+    await bot.close()
 
 @bot.event
 async def on_command_error(ctx, error):
