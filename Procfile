@@ -1,1 +1,1 @@
-web: pipenv run python connect4bot.py
+worker: pipenv run python connect4bot.py
