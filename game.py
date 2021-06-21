@@ -87,7 +87,9 @@ class Round:
         ))
         return embed
 
-    def check_win(self, row_index, column_index, user_index):
+    def check_win(self, row_index, column_index, user_index, game_grid=None):
+        if game_grid is None:
+            game_grid = self.game_grid
         max_len_in_a_row = {(0, 1): 0, (1, 0): 0, (1, 1): 0, (1, -1): 0}  # All directions
         for offset in range(-self.length + 1, self.length):
             for y, x in max_len_in_a_row:
@@ -194,6 +196,15 @@ class DelayedRound(Round):
             for user_index, column_index, row_index in self.game_history[-self.delay:]:
                 game_grid[row_index][column_index] = -1
         return super().create_embed(game_grid=game_grid)
+
+    def check_win(self, row_index, column_index, user_index):
+        game_grid = deepcopy(self.game_grid)
+        for user_index, column_index, row_index in self.game_history[-self.delay:]:
+            game_grid[row_index][column_index] = -1
+        if len(self.game_history) <= self.delay:
+            return False
+        user_index, column_index, row_index = self.game_history[-self.delay-1]
+        return super().check_win(row_index, column_index, user_index, game_grid=game_grid)
 
 @dataclass
 class Game(commands.Cog):
