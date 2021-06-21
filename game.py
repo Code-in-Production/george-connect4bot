@@ -93,14 +93,12 @@ class Round:
         max_len_in_a_row = {(0, 1): 0, (1, 0): 0, (1, 1): 0, (1, -1): 0}  # All directions
         for offset in range(-self.length + 1, self.length):
             for y, x in max_len_in_a_row:
-                try:
-                    if self.game_grid[row_index + y*offset][column_index + x*offset] == user_index:
+                if 0 <= row_index + y*offset < self.height and 0 <= column_index + x*offset < self.width:
+                    if game_grid[row_index + y*offset][column_index + x*offset] == user_index:
                         max_len_in_a_row[y, x] += 1
                         if max_len_in_a_row[y, x] == self.length:
                             return True
                         continue
-                except IndexError:
-                    pass
                 max_len_in_a_row[y, x] = 0
         return False
 
