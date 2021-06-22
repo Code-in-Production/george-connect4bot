@@ -4,9 +4,16 @@ import discord
 from discord.ext import commands
 
 bot = commands.Bot(command_prefix="]")
+extensions = ["game"]
 
 @bot.event
 async def on_ready():
+    if extensions:
+        print(f"Loading extensions: {', '.join(extensions)}")
+        for name in extensions:
+            print(f"Loading {name}")
+            bot.load_extension(name)
+        print("All extensions loaded")
     print("Bot now running")
 
 @bot.command(ignore_extra=False, hidden=True)
